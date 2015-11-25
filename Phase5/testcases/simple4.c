@@ -45,7 +45,7 @@ Child(char *arg)
       Tconsole("Child(): iteration %d\n", i);
       before = vmStats;
       for (page = 0; page < PAGES; page++) {
-         value = * ((int *) (vmRegion + (page * MMU_PageSize())));
+         value = * ((int *) (vmRegion + (page * USLOSS_MmuPageSize())));
 Tconsole("Child(%d): page %d, value %d\n", pid, page, value);
          verify(value == 0);
       }

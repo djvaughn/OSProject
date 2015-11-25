@@ -34,8 +34,8 @@ Child(char *arg)
    GetPID(&pid);
    Tconsole("Child(): starting (pid = %d)\n", pid);
 
-   zeros = calloc(MMU_PageSize(), 1);
-   if (memcmp(vmRegion, zeros, MMU_PageSize()) != 0) {
+   zeros = calloc(USLOSS_MmuPageSize(), 1);
+   if (memcmp(vmRegion, zeros, USLOSS_MmuPageSize()) != 0) {
       Tconsole("Child(): VmRegion is not zero-filled\n");
       abort();
    }

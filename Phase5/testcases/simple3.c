@@ -35,7 +35,7 @@ Child(char *arg)
    GetPID(&pid);
    Tconsole("Child(): starting (pid = %d)\n", pid);
    buffer = (char *) vmRegion;
-   for (i = 0; i < PAGES * MMU_PageSize(); i++) {
+   for (i = 0; i < PAGES * USLOSS_MmuPageSize(); i++) {
       buffer[i] = i % 256;
    }
 
