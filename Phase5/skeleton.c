@@ -17,12 +17,12 @@
 #include <vm.h>
 #include <string.h>
 
-extern void mbox_create(sysargs *args_ptr);
-extern void mbox_release(sysargs *args_ptr);
-extern void mbox_send(sysargs *args_ptr);
-extern void mbox_receive(sysargs *args_ptr);
-extern void mbox_condsend(sysargs *args_ptr);
-extern void mbox_condreceive(sysargs *args_ptr);
+extern void mbox_create(systemArgs *args_ptr);
+extern void mbox_release(systemArgs *args_ptr);
+extern void mbox_send(systemArgs *args_ptr);
+extern void mbox_receive(systemArgs *args_ptr);
+extern void mbox_condsend(systemArgs *args_ptr);
+extern void mbox_condreceive(systemArgs *args_ptr);
 
 static Process processes[MAXPROC];
 
@@ -35,14 +35,14 @@ VmStats  vmStats;
 
 static void FaultHandler(int type, int offset);
 
-static void vm_init(sysargs *sysargsPtr);
-static void vm_cleanup(sysargs *sysargsPtr);
+static void vm_init(systemArgs *sysargsPtr);
+static void vm_cleanup(systemArgs *sysargsPtr);
 /*
  *----------------------------------------------------------------------
  *
  * start4 --
  *
- * Initializes the VM system call handlers. 
+ * Initializes the VM system call handlers.
  *
  * Results:
  *      MMU return status
@@ -102,7 +102,7 @@ start4(char *arg)
  *----------------------------------------------------------------------
  */
 static void
-vmInit(sysargs *sysargsPtr)
+vmInit(systemArgs *sysArg)
 {
     CheckMode();
 } /* vm_init */
@@ -166,7 +166,7 @@ vm_init_real(int mappings, int pages, int frames, int pagers)
     * Initialize page tables.
     */
 
-   /* 
+   /*
     * Create the fault mailbox.
     */
 
@@ -246,7 +246,7 @@ vm_cleanup_real(void)
    /*
     * Kill the pagers here.
     */
-   /* 
+   /*
     * Print vm statistics.
     */
    console("vmStats:\n");
@@ -294,7 +294,7 @@ FaultHandler(int type /* MMU_INT */,
 /*
  *----------------------------------------------------------------------
  *
- * Pager 
+ * Pager
  *
  * Kernel process that handles page faults and does page replacement.
  *
