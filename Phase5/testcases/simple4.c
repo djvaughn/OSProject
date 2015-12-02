@@ -5,14 +5,14 @@
  * algorithm starts with frame 0, this will cause a page fault on every
  * access. 
  */
-#include <phase2.h>
 #include <phase5.h>
 #include <usyscall.h>
 #include <libuser.h>
 #include <usloss.h>
 #include <string.h>
+#include <assert.h>
 
-#include "test5.h"
+#define Tconsole USLOSS_Console
 
 #define TEST        "simple4"
 #define PAGES       7
@@ -30,54 +30,77 @@ int sem;
 int
 Child(char *arg)
 {
-   int     pid;
-   int     page;
-   int     i;
-   char   *buffer;
-   VmStats before;
-   int     value;
+    int     pid;
+    int     page;
+    int     i;
+    char   *buffer;
+    VmStats before;
+    int     value;
 
-   GetPID(&pid);
-   Tconsole("Child(): starting (pid = %d)\n", pid);
-   buffer = (char *) vmRegion;
+    GetPID(&pid);
+    Tconsole("Child(): starting (pid = %d)\n", pid);
+    buffer = (char *) vmRegion;
 
-   for (i = 0; i < ITERATIONS; i++) {
-      Tconsole("Child(): iteration %d\n", i);
-      before = vmStats;
-      for (page = 0; page < PAGES; page++) {
-         value = * ((int *) (vmRegion + (page * USLOSS_MmuPageSize())));
-Tconsole("Child(%d): page %d, value %d\n", pid, page, value);
-         verify(value == 0);
-      }
-      verify(vmStats.faults - before.faults == PAGES);
-   }
 
-   SemV(sem);
-   Terminate(117);
-   return 0;
+    for (i = 0; i < ITERATIONS; i++) {
+        Tconsole("\nChild(%d): iteration %d\n", pid, i);
+        before = vmStats;
+Tconsole("before.faults = %d\n", before.faults);
+
+        // Read one int from the first location on each of the pages
+        // in the VM region.
+        Tconsole("Child(%d): reading one location from each of %d pages\n",
+                 pid, PAGES);
+        for (page = 0; page < PAGES; page++) {
+            value = * ((int *) (vmRegion + (page * USLOSS_MmuPageSize())));
+            Tconsole("Child(%d): page %d, value %d\n", pid, page, value);
+            assert(value == 0);
+        }
+
+Tconsole("vmStats.faults = %d\n", vmStats.faults);
+        // The number of faults should equal the number of pages
+        assert(vmStats.faults - before.faults == PAGES + i);
+    }
+
+    SemV(sem);
+    Terminate(123);
+    return 0;
 } /* Child */
 
 
 int
 start5(char *arg)
 {
-   int  pid;
-   int  status;
+    int  pid;
+    int  status;
 
-   Tconsole("start5(): Running %s\n", TEST);
-   Tconsole("start5(): Pagers: %d, Mappings : %d, Pages: %d, Frames: %d, Children %d, Iterations %d, Priority %d.\n", PAGERS, MAPPINGS, PAGES, FRAMES, CHILDREN, ITERATIONS, PRIORITY);
+    Tconsole("start5(): Running:    %s\n", TEST);
+    Tconsole("start5(): Pagers:     %d\n", PAGERS);
+    Tconsole("          Mappings:   %d\n", MAPPINGS);
+    Tconsole("          Pages:      %d\n", PAGES);
+    Tconsole("          Frames:     %d\n", FRAMES);
+    Tconsole("          Children:   %d\n", CHILDREN);
+    Tconsole("          Iterations: %d\n", ITERATIONS);
+    Tconsole("          Priority:   %d\n", PRIORITY);
 
-   vmRegion = VmInit( MAPPINGS, PAGES, FRAMES, PAGERS );
+    status = VmInit( MAPPINGS, PAGES, FRAMES, PAGERS, vmRegion );
 
-   Spawn("Child", Child,  0,USLOSS_MIN_STACK*7,PRIORITY, &pid);
-   SemP( sem);
-   Wait(&pid, &status);
-   verify(status == 117);
+    Tconsole("start5(): after call to VmInit, status = %d\n\n", status);
+    assert(status == 0);
+    assert(vmRegion != NULL);
 
-   Tconsole("start5(): done\n");
-   //PrintStats();
-   VmDestroy();
-   Terminate(1);
+    SemCreate(0, &sem);
 
-   return 0;
+    Spawn("Child", Child,  0,USLOSS_MIN_STACK*7,PRIORITY, &pid);
+
+    SemP( sem);
+    Wait(&pid, &status);
+    assert(status == 123);
+
+    Tconsole("start5(): done\n");
+    //PrintStats();
+    VmDestroy();
+    Terminate(1);
+
+    return 0;
 } /* start5 */

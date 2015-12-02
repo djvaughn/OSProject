@@ -49,8 +49,8 @@ int Spawn(char *name, int (*func)(char *), char *arg, int stack_size,
     sysArg.arg4 = (void *) ( (long) priority);
     sysArg.arg5 = name;
     USLOSS_Syscall(&sysArg);
-    *pid = (long) sysArg.arg1;
-    return (long) sysArg.arg4;
+    *pid = (int) (long) sysArg.arg1;
+    return (int) (long) sysArg.arg4;
 } /* end of Spawn */
 
 
@@ -73,9 +73,9 @@ int Wait(int *pid, int *status)
     CHECKMODE;
     sysArg.number = SYS_WAIT;
     USLOSS_Syscall(&sysArg);
-    *pid = (long) sysArg.arg1;
-    *status = (long) sysArg.arg2;
-    return (long) sysArg.arg4;
+    *pid    = (int) (long) sysArg.arg1;
+    *status = (int) (long) sysArg.arg2;
+    return (int) (long) sysArg.arg4;
 
 } /* End of Wait */
 
@@ -120,8 +120,8 @@ int SemCreate(int value, int *semaphore)
     sysArg.number = SYS_SEMCREATE;
     sysArg.arg1 = (void *) ( (long) value);
     USLOSS_Syscall(&sysArg);
-    *semaphore = (long) sysArg.arg1;
-    return (long) sysArg.arg4;
+    *semaphore = (int) (long) sysArg.arg1;
+    return (int) (long) sysArg.arg4;
 } /* end of SemCreate */
 
 
@@ -143,7 +143,7 @@ int SemP(int semaphore)
     sysArg.number = SYS_SEMP;
     sysArg.arg1 = (void *) ( (long) semaphore);
     USLOSS_Syscall(&sysArg);
-    return (long) sysArg.arg4;
+    return (int) (long) sysArg.arg4;
 } /* end of SemP */
 
 
@@ -165,7 +165,7 @@ int SemV(int semaphore)
     sysArg.number = SYS_SEMV;
     sysArg.arg1 = (void *) ( (long) semaphore);
     USLOSS_Syscall(&sysArg);
-    return (long) sysArg.arg4;
+    return (int) (long) sysArg.arg4;
 } /* end of SemV */
 
 
@@ -187,7 +187,7 @@ int SemFree(int semaphore)
     sysArg.number = SYS_SEMFREE;
     sysArg.arg1 = (void *) ( (long) semaphore);
     USLOSS_Syscall(&sysArg);
-    return (long) sysArg.arg4;
+    return (int) (long) sysArg.arg4;
 } /* end of SemFree */
 
 
@@ -207,7 +207,7 @@ void GetTimeofDay(int *tod)
     CHECKMODE;
     sysArg.number = SYS_GETTIMEOFDAY;
     USLOSS_Syscall(&sysArg);
-    *tod = (long) sysArg.arg1;
+    *tod = (int) (long) sysArg.arg1;
     return;
 } /* end of GetTimeofDay */
 
@@ -229,7 +229,7 @@ void CPUTime(int *cpu)
     CHECKMODE;
     sysArg.number = SYS_CPUTIME;
     USLOSS_Syscall(&sysArg);
-    *cpu = (long) sysArg.arg1;
+    *cpu = (int) (long) sysArg.arg1;
     return;
 } /* end of CPUTime */
 
@@ -251,7 +251,7 @@ void GetPID(int *pid)
     CHECKMODE;
     sysArg.number = SYS_GETPID;
     USLOSS_Syscall(&sysArg);
-    *pid = (long) sysArg.arg1;
+    *pid = (int) (long) sysArg.arg1;
     return;
 } /* end of GetPID */
 
@@ -274,7 +274,7 @@ int Sleep(int seconds)
     sysArg.number = SYS_SLEEP;
     sysArg.arg1 = (void *) (long) seconds;
     USLOSS_Syscall(&sysArg);
-    return (int) sysArg.arg4;
+    return (int) (long) sysArg.arg4;
 } /* end of Sleep */
 
 
@@ -302,8 +302,8 @@ int TermRead(char *buffer, int bufferSize, int unitID, int *numCharsRead)
     sysArg.arg2 = (void *) (long) bufferSize;
     sysArg.arg3 = (void *) (long) unitID;
     USLOSS_Syscall(&sysArg);
-    *numCharsRead = (int) sysArg.arg2;
-    return (int) sysArg.arg4;
+    *numCharsRead = (int) (long) sysArg.arg2;
+    return (int) (long) sysArg.arg4;
 } /* end of TermRead */
 
 
@@ -331,8 +331,8 @@ int TermWrite(char *buffer, int bufferSize, int unitID, int *numCharsWritten)
     sysArg.arg2 = (void *) (long) bufferSize;
     sysArg.arg3 = (void *) (long) unitID;
     USLOSS_Syscall(&sysArg);
-    *numCharsWritten = (int) sysArg.arg2;
-    return (int) sysArg.arg4;
+    *numCharsWritten = (int) (long) sysArg.arg2;
+    return (int) (long) sysArg.arg4;
 } /* end of TermWrite */
 
 
@@ -365,8 +365,8 @@ int DiskRead(void *diskBuffer, int unit, int track, int first, int sectors,
     sysArg.arg4 = (void *) (long) first;
     sysArg.arg5 = (void *) (long) unit;
     USLOSS_Syscall(&sysArg);
-    *status = (int) sysArg.arg1;
-    return (int) sysArg.arg4;
+    *status = (int) (long) sysArg.arg1;
+    return (int) (long) sysArg.arg4;
 } /* end of DiskRead */
 
 
@@ -399,8 +399,8 @@ int DiskWrite(void *diskBuffer, int unit, int track, int first, int sectors,
     sysArg.arg4 = (void *) (long) first;
     sysArg.arg5 = (void *) (long) unit;
     USLOSS_Syscall(&sysArg);
-    *status = (int) sysArg.arg1;
-    return (int) sysArg.arg4;
+    *status = (int) (long) sysArg.arg1;
+    return (int) (long) sysArg.arg4;
 } /* end of DiskWrite */
 
 
@@ -426,10 +426,10 @@ int DiskSize(int unit, int *sector, int *track, int *disk)
     sysArg.number = SYS_DISKSIZE;
     sysArg.arg1 = (void *) (long) unit;
     USLOSS_Syscall(&sysArg);
-    *sector = (int) sysArg.arg1;
-    *track = (int) sysArg.arg2;
-    *disk = (int) sysArg.arg3;
-    return (int) sysArg.arg4;
+    *sector = (int) (long) sysArg.arg1;
+    *track  = (int) (long) sysArg.arg2;
+    *disk   = (int) (long) sysArg.arg3;
+    return (int) (long) sysArg.arg4;
 } /* end of DiskSize */
 
 /*
@@ -455,7 +455,7 @@ int Mbox_Create(int numslots, int slotsize, int *mboxID)
     sysArg.arg2 = (void *) (long) slotsize;
     USLOSS_Syscall(&sysArg);
     *mboxID = (int) sysArg.arg1;
-    return (int) sysArg.arg4;
+    return (int) (long) sysArg.arg4;
 } /* end of Mbox_Create */
 
 
@@ -477,7 +477,7 @@ int Mbox_Release(int mboxID)
     sysArg.number = SYS_MBOXRELEASE;
     sysArg.arg1 = (void *) (long) mboxID;
     USLOSS_Syscall(&sysArg);
-    return (int) sysArg.arg4;
+    return (int) (long) sysArg.arg4;
 } /* end of Mbox_Release */
 
 
@@ -503,7 +503,7 @@ int Mbox_Send(int mboxID, void *msgPtr, int msgSize)
     sysArg.arg2 = (void *) (long) msgPtr;
     sysArg.arg3 = (void *) (long) msgSize;
     USLOSS_Syscall(&sysArg);
-    return (int) sysArg.arg4;
+    return (int) (long) sysArg.arg4;
 } /* end of Mbox_Send */
 
 
@@ -533,8 +533,8 @@ int Mbox_Receive(int mboxID, void *msgPtr, int msgSize)
          * This doesn't belong here. The copy should by done by the
          * system call.
          */
-        if ( (int) sysArg.arg4 == -1 )
-                return (int) sysArg.arg4;
+        if ( (int) (long) sysArg.arg4 == -1 )
+                return (int) (long) sysArg.arg4;
         memcpy( (char*)msgPtr, (char*)sysArg.arg2, (int)sysArg.arg3);
         return 0;
 
@@ -564,7 +564,7 @@ int Mbox_CondSend(int mboxID, void *msgPtr, int msgSize)
     sysArg.arg2 = (void *) (long) msgPtr;
     sysArg.arg3 = (void *) (long) msgSize;
     USLOSS_Syscall(&sysArg);
-    return ((int) sysArg.arg4);
+    return ((int) (long) sysArg.arg4);
 } /* end of Mbox_CondSend */
 
 
@@ -592,7 +592,7 @@ int Mbox_CondReceive(int mboxID, void *msgPtr, int msgSize)
     sysArg.arg2 = (void *) (long) msgPtr;
     sysArg.arg3 = (void *) (long) msgSize;
     USLOSS_Syscall( &sysArg );
-    return ((int) sysArg.arg4);
+    return ((int) (long) sysArg.arg4);
 } /* end of Mbox_CondReceive */
 
 
@@ -609,7 +609,7 @@ int Mbox_CondReceive(int mboxID, void *msgPtr, int msgSize)
  *  Return Value: address of VM region, NULL if there was an error
  *
  */
-void *VmInit(int mappings, int pages, int frames, int pagers)
+int VmInit(int mappings, int pages, int frames, int pagers, void **region)
 {
     systemArgs     sysArg;
 
@@ -620,11 +620,15 @@ void *VmInit(int mappings, int pages, int frames, int pagers)
     sysArg.arg2 = (void *) (long) pages;
     sysArg.arg3 = (void *) (long) frames;
     sysArg.arg4 = (void *) (long) pagers;
+
     USLOSS_Syscall(&sysArg);
-    if ((int) sysArg.arg4 == -1) {
-        return NULL;
+
+    *region = sysArg.arg1;  // return address of VM Region
+
+    if ((int) sysArg.arg4 == 0) {
+        return 0;
     } else {
-        return sysArg.arg1;
+        return (int) (long) sysArg.arg4;
     }
 } /* VmInit */
 
@@ -640,13 +644,14 @@ void *VmInit(int mappings, int pages, int frames, int pagers)
  *
  */
 
-void
+int
 VmDestroy(void) {
     systemArgs     sysArg;
 
     CHECKMODE;
     sysArg.number = SYS_VMDESTROY;
     USLOSS_Syscall(&sysArg);
+    return (int) (long) sysArg.arg1;
 } /* VmDestroy */
 
 
