@@ -44,5 +44,6 @@ typedef struct VmStats {
 } VmStats;
 
 extern VmStats	vmStats;
+void *vmRegion;
 
 #endif /* _PHASE5_H */
