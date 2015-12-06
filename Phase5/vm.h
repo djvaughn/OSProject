@@ -13,8 +13,8 @@
  */
 #define UNUSED 500
 #define INCORE 501
- #define ONDISK 502
- #define ONBOTH 503
+#define ONDISK 502
+#define ONBOTH 503
 /* You'll probably want more states */
 
 typedef PTE *pagePointer;
@@ -36,6 +36,11 @@ typedef struct PTE {
 typedef struct Process {
     int  numPages;   // Size of the page table.
     PTE  *pageTable; // The page table for the process.
+    int privateMbox;
+    int mutexMbox;
+    int currentPage;
+    int mappings;
+    int numPages;
     //private nailbox
     // Add more stuff here */
 } Process;

@@ -37,7 +37,14 @@ FTE FTETable[MAXPROC];
 int faultmBox;
 int maxPage;
 int totalFrames;
-
+int totalPagers;
+int sectorNum;
+int trackNum;
+int bytesNum;
+int diskSize;
+int diskInBlocks;
+int totalMapping;
+int killBox;
 
 static void
 FaultHandler(int  type,  // USLOSS_MMU_INT
@@ -83,6 +90,10 @@ start4(char *arg)
   systemCallVec[SYS_VMDESTROY] = vmDestroy;
 
   intializeProcStruct();
+  DiskSize(0, &sectorNum, $trackNum, &bytesNum);
+  diskSize = sectorNum * trackNum * bytesNum;
+  diskInBlocks = diskSize / USLOSS_MmuPageSize;
+
 
   result = Spawn("Start5", start5, NULL, 8 * USLOSS_MIN_STACK, 2, &pid);
   if (result != 0) {
@@ -203,7 +214,11 @@ vmInitReal(int mappings, int pages, int frames, int pagers)
   }
   maxPage = pages;
   totalFrames = frames;
+  totalMapping = mappings;
+  totalPagers = pagers;
   USLOSS_IntVec[USLOSS_MMU_INT] = FaultHandler;
+  killBox = MboxCreate(4, 0);
+
 
 
   /*
@@ -213,6 +228,7 @@ vmInitReal(int mappings, int pages, int frames, int pagers)
   {
     PTETable[i] = malloc(pages * sizeof(PTE*));
     processes[i].numPages = pages;
+    processes[i].mappings = 0;
     for (int j = 0; j < pages; j++)
     {
       PTETable[i][j] = malloc(sizeof(PTE));
@@ -227,6 +243,9 @@ vmInitReal(int mappings, int pages, int frames, int pagers)
   for (int i = 0; i < frames; i++)
   {
     FTETable[i].state = UNUSED;
+    FTETable[i].pid = -1;
+    FTETable[i].page = -1;
+    FTETable[i].clean = -1;
   }
   /*
    * Create the fault mailbox.
@@ -236,11 +255,12 @@ vmInitReal(int mappings, int pages, int frames, int pagers)
   /*
    * Fork the pagers.
    */
+  allPagers = malloc(pagers * sizeof(int));
   for (i = 0; i < pagers; i++)
   {
     sprintf(buffer, "%d", i);
     sprintf(name, "Pager %d", i);
-    fork1(name, Pager, buffer, USLOSS_MIN_STACK, PAGER_PRIORITY);
+    allPagers [i] = fork1(name, Pager, buffer, USLOSS_MIN_STACK, PAGER_PRIORITY);
   }
 
 
@@ -250,6 +270,9 @@ vmInitReal(int mappings, int pages, int frames, int pagers)
   memset((char *) &vmStats, 0, sizeof(VmStats));
   vmStats.pages = pages;
   vmStats.frames = frames;
+  vmStats.freeFrames = frames;
+  vmStats.diskBlocks = diskBlock;
+  vmStats.freeDiskBlocks = diskBlock;
   /*
    * Initialize other vmStats fields.
    */
@@ -312,17 +335,43 @@ vmDestroyReal(void)
 {
 
   CheckMode();
-  USLOSS_MmuDone();
+  if (virtualMemInitialized)
+  {
+    USLOSS_MmuDone();
+    for (int i = 0; i < MAXPROC; i++)
+    {
+      if (i > 9)
+      {
+        for (int j = 0; j < maxPage; j++)
+        {
+          free(processes[i].pageTable[j]);
+        }
+      }
+
+    }
+
+
+    free(FTETable);
+    for (int i = 0; i < totalPagers; i++)
+    {
+      MboxCondSend(int killBox, NULL, 0);
+      MboxSend(faultmBox, NULL, 0);
+      zap(allPagers(i));
+    }
+
+  }
+
+
+
   /*
    * Kill the pagers here.
    */
   /*
    * Print vm statistics.
    */
-  USLOSS_Console("vmStats:\n");
-  USLOSS_Console("pages: %d\n", vmStats.pages);
-  USLOSS_Console("frames: %d\n", vmStats.frames);
-  USLOSS_Console("blocks: %d\n", vmStats.blocks);
+   PrintStats();
+
+
   /* and so on... */
 
 } /* vmDestroyReal */
@@ -361,13 +410,38 @@ FaultHandler(int  type /* USLOSS_MMU_INT */,
    * reply.
    */
   int pid = getPid();
+
+  if (processes[pid % MAXPROC].pid == -1) {
+    processes[pid % MAXPROC].pid = pid;
+  }
+  if (processes[pid % MAXPROC].privateMbox == -1)
+  {
+    processes[pid % MAXPROC].privateMbox = MboxCreate(0, sizeof(FaultMsg));
+  }
+
+
   faults[pid % MAXPROC].pid = pid;
   faults[pid % MAXPROC].addr = vmRegion + offset;
   faults[pid % MAXPROC].replyMbox = processes[pid % MAXPROC].privateMbox;
   faults[pid % MAXPROC].offset = offset;
+
+
   MboxSend(faultmBox, &faults[pid % MAXPROC], sizeof(FaultMsg));
-  MboxReceive(processes[pid % MAXPROC].privateMbox, &frame, sizeof(FTE));
-  USLOSS_MmuMap(TAG, pageLocation, fault[pid % MAXPROC].frame, TAG);
+  MboxReceive(processes[pid % MAXPROC].privateMbox, &faults[pid % MAXPROC], sizeof(FaultMsg));
+
+  USLOSS_MmuMap(TAG, pageLocation, fault[pid % MAXPROC].frame, USLOSS_MMU_PROT_RW);
+  vmStats.freeFrames--;
+
+  if (processes[pid % MAXPROC].PTETable[pageLocation].state == UNUSED)
+  {
+    vmStats.new++;
+
+  }
+
+  processes[pid % MAXPROC].PTETable[pageLocation].state = INCORE;
+  FTETable[pid % MAXPROC].state = INCORE;
+
+  USLOSS_MmuSetAccess(fault[pid % MAXPROC].frame, USLOSS_MMU_PROT_RW);
 
 } /* FaultHandler */
 
@@ -390,29 +464,45 @@ static int
 Pager(char *buf)
 {
   int count = -1;
+  int pid = getPid() % MAXPROC;
+  processes[pid].pid = pid;
+  processes[pid].pageTable = &PTETable[pid] ;
+  processes[pid].privateMbox = MboxCreate(1, MAX_MESSAGE)
   while (1) {
-    FaultMsg recieveMsg;
-    Mbox_Receive(faultmBox, &recieveMsg, sizeof(FaultMsg));
+
+    FaultMsg recieveFault;
+    MboxReceive(faultmBox, &recieveFault, sizeof(FaultMsg));
+    if (!mboxCondreceive(killBox, NULL, 0)) {
+      quit(0);
+    }
+
     for (int i = 0; i < totalFrames; i++)
     {
       if (FTETable[i].state == UNUSED)
       {
         count = i;
-        i = totalFrames
+        i = totalFrames;
+        vmStats.freeFrames--;
       }
     }
+
     if (count == - 1)
     {
-      count = clockAlgorithm(recieveMsg.addr);
+      count = clockAlgorithm(recieveFault.addr);
     }
-    mapPager( count, recieveMsg.offset);
-    recieveMsg.frame = count;
+
+    mapPager( count, recieveFault.offset);
+    recieveFault.frame = count;
+
     if (FTETable[count].state == ONDISK)
     {
       FTETable[count].state = ONBOTH;
+
     } else {
       FTETable[count].state = INCORE;
+
     }
+    MboxSend(recieveFault.replyMbox, &recieveFault, sizeof(FaultMsg));
 
     /* Wait for fault to occur (receive from mailbox) */
     /* Look for free frame */
@@ -428,7 +518,6 @@ void intializeProcStruct(void) {
   for (int i = 0; i < MAXPROC; i++)
   {
     processes[i].mutexMbox = MboxCreate(1, MAX_MESSAGE);
-    processes[i].privateMbox = MboxCreate(0, MAX_MESSAGE);
     processes[i].numPages = 0;
     processes[i].pageTable = NULL;
     faults[i].pid = -1;
@@ -440,14 +529,30 @@ void intializeProcStruct(void) {
 
 void getPageTable(int pid) {
   int currentPid = pid % MAXPROC;
-  processes[currentPid].pageTable = PTETable[currentPid];
+  for (int i = 0; i < maxPage; i++)
+  {
+    PTETable[currentPid][i] = malloc(sizeof(PTE));
+    PTETable[currentPid][i].state = UNUSED;
+    PTETable[currentPid][i].frame = -1;
+    PTETable[currentPid][i].diskBlock = -1;
+
+
+  }
+  processes[currentPid].pageTable = *PTETable[currentPid];
 }
 
 void swapPageTable(int oldProcessPid, int newProcessPid) {
   int code;
-  vmStats.switches++;
   int oldProcess = oldProcessPid % MAXPROC;
   int newProcess = newProcessPid % MAXPROC;
+
+  for (int i = 0; i < maxPage; i++)
+  {
+    if (processes[oldProcess].pageTable[i].state != UNUSED)
+    {
+      USLOSS_MmuUnmap(TAG, i);
+    }
+  }
 
 
 }
@@ -457,8 +562,8 @@ int clockAlgorithm(void *addr) {
 }
 
 void mapPager(int count, int slot) {
-  USLOSS_MmuMap(TAG, slot, count, TAG);
-  memcpy(vmRegion + slot * USLOSS_MmuPageSize(), 0, USLOSS_MmuPageSize());
-  USLOSS_MmuUnmap(TAG, slot);
+  //USLOSS_MmuMap(TAG, slot, count, TAG);
+  memset(vmRegion + slot * USLOSS_MmuPageSize(), 0, USLOSS_MmuPageSize());//make it memset
+  //USLOSS_MmuUnmap(TAG, slot);
 }
 //fte table malck page pointer times frames
