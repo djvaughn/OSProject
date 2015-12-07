@@ -31,5 +31,7 @@ p1_quit(int pid)
 {
     if (DEBUG && debugflag)
         USLOSS_Console("p1_quit() called: pid = %d\n", pid);
+    unMapFrame(pid);
+    freePageTable(pid);
 } /* p1_quit */
 

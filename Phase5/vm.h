@@ -41,6 +41,7 @@ typedef struct Process {
     int currentPage;
     int mappings;
     int numPages;
+    char buffer[MAXLINE +1];
     //private nailbox
     // Add more stuff here */
 } Process;
@@ -52,6 +53,8 @@ typedef struct FTE {
     int  state;
     int pid;
     int page;
+    int ref;
+    int isClean;
     //fault mailbox
     //private nailbox
     // Add more stuff here */
