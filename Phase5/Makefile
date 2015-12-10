@@ -15,7 +15,7 @@ PHASE4LIB = patrickphase4
 #PHASE3LIB = patrickphase3debug
 #PHASE4LIB = patrickphase4debug
 
-HDRS = vm.h
+HDRS = vm.h phase4.h phase5.h phase3.h phase2.h phase1.h provided_prototypes.h libuser.h 
 
 INCLUDE = ./usloss/include
 
@@ -28,19 +28,28 @@ endif
 LDFLAGS += -L. -L./usloss/lib
 
 TESTDIR = testcases
-TESTS = test1 test2 test3 test4 simple1 simple2 simple3 simple4 simple5 \
-        chaos replace1 outOfSwap replace2 gen clock quit 
-LIBS = $(TESTDIR)/Tconsole.o -lpatrickphase4 -lpatrickphase3 -lpatrickphase2 \
-       -lpatrickphase1 -lusloss -lpatrickphase1 -lpatrickphase2 \
-       -lpatrickphase3 -lpatrickphase4 -lphase5 -luser
+
+TESTS = test1 test2 test3 test4 simple1 simple2 simple3 simple4 simple5 simple6 simple7 simple8 \
+        chaos replace1 outOfSwap replace2 gen clock quit
+
+LIBS = $(TESTDIR)/Tconsole.o -lusloss -l$(PHASE1LIB) -l$(PHASE2LIB) -l$(PHASE3LIB) -l$(PHASE4LIB) -lphase5 
+
 
 $(TARGET):	$(COBJS)
 		$(AR) -r $@ $(COBJS) 
+
+phase5.o:	vm.h provided_prototypes.h
 
 #$(TESTS):	$(TARGET) $(TESTDIR)/$$@.c
 $(TESTS):	$(TARGET)
 	$(CC) $(CFLAGS) -c $(TESTDIR)/$@.c
 	$(CC) $(LDFLAGS) -o $@ $@.o $(LIBS)
+
+
+		
+p1.o:	p1.c
+
+libuser.o:	libuser.h vm.h 
 
 clean:
 	rm -f $(COBJS) $(TARGET) test?.o test? simple?.o simple? gen.o gen \

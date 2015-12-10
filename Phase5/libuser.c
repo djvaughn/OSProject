@@ -454,7 +454,7 @@ int Mbox_Create(int numslots, int slotsize, int *mboxID)
     sysArg.arg1 = (void *) (long) numslots;
     sysArg.arg2 = (void *) (long) slotsize;
     USLOSS_Syscall(&sysArg);
-    *mboxID = (int) sysArg.arg1;
+    *mboxID = (int)(long) sysArg.arg1;
     return (int) (long) sysArg.arg4;
 } /* end of Mbox_Create */
 
@@ -535,7 +535,7 @@ int Mbox_Receive(int mboxID, void *msgPtr, int msgSize)
          */
         if ( (int) (long) sysArg.arg4 == -1 )
                 return (int) (long) sysArg.arg4;
-        memcpy( (char*)msgPtr, (char*)sysArg.arg2, (int)sysArg.arg3);
+        memcpy( (char*)msgPtr, (char*)sysArg.arg2, (int)(long)sysArg.arg3);
         return 0;
 
 } /* end of Mbox_Receive */
@@ -625,7 +625,7 @@ int VmInit(int mappings, int pages, int frames, int pagers, void **region)
 
     *region = sysArg.arg1;  // return address of VM Region
 
-    if ((int) sysArg.arg4 == 0) {
+    if ((int)(long) sysArg.arg4 == 0) {
         return 0;
     } else {
         return (int) (long) sysArg.arg4;
